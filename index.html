@@ -4,19 +4,18 @@
     <meta charset="UTF-8">
     <title>Hyperboloid Kinetic Drive</title>
     <style>
-        /* 全局设置：高端工业设计风格 */
+        /* 全局设置 */
         body { margin: 0; overflow: hidden; background-color: #ffffff; font-family: 'Segoe UI', 'Helvetica Neue', sans-serif; }
         
-        /* 1. 标题区域 - 左上角 */
+        /* 1. 标题区域 */
         #info {
             position: absolute;
             top: 40px;
             left: 40px;
-            pointer-events: none; /* 让鼠标可以透过文字操作模型 */
+            pointer-events: none;
             color: #111;
             z-index: 10;
         }
-        /* 主标题：细线体，大写，字间距大 */
         h1 { 
             margin: 0; 
             font-weight: 200; 
@@ -26,7 +25,6 @@
             padding-left: 16px; 
             text-transform: uppercase;
         }
-        /* 副标题：工整的说明文字 */
         p { 
             font-size: 11px; 
             color: #666; 
@@ -36,32 +34,38 @@
             font-weight: 500;
         }
 
-        /* 2. 控制面板 - 右下角 (本次修改重点) */
+        /* 2. 控制面板 */
         #controls {
             position: absolute;
             bottom: 40px;
-            right: 40px; /* 靠右 */
+            right: 40px;
             
             display: flex;
-            gap: 30px; /* 两个滑块之间的间距 */
+            gap: 30px;
             
-            /* 悬浮面板样式：纯白 + 极细边框 + 柔和阴影 */
             background: rgba(255, 255, 255, 0.9);
             padding: 20px 30px;
             border: 1px solid #e0e0e0;
-            border-radius: 2px; /* 稍微直一点的圆角，更硬朗 */
+            border-radius: 2px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
             z-index: 10;
-            backdrop-filter: blur(5px); /* 毛玻璃效果 */
+            backdrop-filter: blur(5px);
         }
         
         .control-group { 
             display: flex; 
             flex-direction: column; 
-            align-items: flex-start; /* 文字左对齐 */
+            align-items: flex-start;
             gap: 8px; 
+            min-width: 140px; 
         }
         
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
         label { 
             font-size: 9px; 
             font-weight: 700; 
@@ -69,10 +73,16 @@
             color: #999; 
             letter-spacing: 1.5px; 
         }
+
+        .value-display {
+            font-size: 10px;
+            font-weight: bold;
+            color: #333;
+            font-family: monospace;
+        }
         
-        /* 自定义滑块样式，让它看起来更像Fusion的UI */
         input[type=range] { 
-            width: 140px; 
+            width: 100%; 
             cursor: pointer; 
             accent-color: #333; 
             height: 4px;
@@ -89,21 +99,30 @@
 </head>
 <body>
 
-    <!-- 左上角标题 -->
     <div id="info">
         <h1>Hyperboloid Kinetic Drive</h1>
         <p>Gravity-Actuated Linear Motion // 16-Axis Assembly</p>
     </div>
 
-    <!-- 右下角控制区 -->
     <div id="controls">
         <div class="control-group">
-            <label>Rotation Speed</label>
-            <input type="range" id="speedRange" min="0" max="100" value="30">
+            <div class="label-row">
+                <label>Rotation Speed</label>
+                <!-- 默认显示 23 -->
+                <span id="speedVal" class="value-display">23</span>
+            </div>
+            <!-- 默认值 value="23" -->
+            <input type="range" id="speedRange" min="0" max="100" value="23">
         </div>
+        
         <div class="control-group">
-            <label>Gravity Factor</label>
-            <input type="range" id="gravityRange" min="1" max="50" value="25">
+            <div class="label-row">
+                <label>Gravity Factor</label>
+                <!-- 默认显示 1 -->
+                <span id="gravityVal" class="value-display">1</span>
+            </div>
+            <!-- 默认值 value="1" -->
+            <input type="range" id="gravityRange" min="1" max="50" value="1">
         </div>
     </div>
 
@@ -162,41 +181,30 @@
         const beanMat = new THREE.MeshStandardMaterial({ 
             color: 0x555555, metalness: 1.0, roughness: 0.25 
         });
-        
-        // 盒子材质
         const boxGlassMat = new THREE.MeshBasicMaterial({ 
-            color: 0xf4f4f4, 
-            transparent: true, 
-            opacity: 0.15,
-            side: THREE.DoubleSide,
-            depthWrite: false 
+            color: 0xf4f4f4, transparent: true, opacity: 0.15,
+            side: THREE.DoubleSide, depthWrite: false 
         });
 
-        // --- 4. 静态部分：两侧盒子 ---
+        // --- 4. 静态盒子 ---
         function createHousingBox(xPos) {
             const group = new THREE.Group();
             const geometry = new THREE.BoxGeometry(config.boxWidth, config.boxSize, config.boxSize);
-            
             const edges = new THREE.EdgesGeometry(geometry);
             const lines = new THREE.LineSegments(edges, blackLineMat);
             group.add(lines);
-
             const mesh = new THREE.Mesh(geometry, boxGlassMat);
             group.add(mesh);
-
             group.position.x = xPos;
             return group;
         }
-
         scene.add(createHousingBox(-config.length / 2));
         scene.add(createHousingBox(config.length / 2));
 
-
-        // --- 5. 动态部分：旋转笼子 ---
+        // --- 5. 动态笼子 ---
         const cage = new THREE.Group();
         scene.add(cage);
 
-        // 圆盘线框
         function createRing(xPos) {
             const geometry = new THREE.RingGeometry(config.radius, config.radius + 0.1, 128);
             const edges = new THREE.EdgesGeometry(geometry); 
@@ -208,7 +216,6 @@
         cage.add(createRing(-config.length / 2));
         cage.add(createRing(config.length / 2));
 
-        // 连杆与豆子
         const sliderObjects = []; 
         const baseBeanGeo = new THREE.SphereGeometry(config.beanRadius, 16, 16);
         baseBeanGeo.scale(1, 1, config.beanStretch); 
@@ -217,11 +224,9 @@
             const angleStep = (Math.PI * 2) / config.rodCount;
             const a1 = i * angleStep;
             const a2 = i * angleStep + config.twist;
-
             const p1 = new THREE.Vector3(-config.length / 2, config.radius * Math.cos(a1), config.radius * Math.sin(a1));
             const p2 = new THREE.Vector3(config.length / 2, config.radius * Math.cos(a2), config.radius * Math.sin(a2));
 
-            // 线
             const dist = p1.distanceTo(p2);
             const lineGeo = new THREE.CylinderGeometry(config.lineThickness, config.lineThickness, dist, 4);
             lineGeo.translate(0, dist / 2, 0);
@@ -231,7 +236,6 @@
             lineMesh.lookAt(p2);
             cage.add(lineMesh);
 
-            // 豆子
             const bean = new THREE.Mesh(baseBeanGeo, beanMat);
             bean.castShadow = true;
             cage.add(bean);
@@ -245,12 +249,27 @@
             });
         }
 
-        // --- 6. 动画 ---
-        let rotSpeed = 0.02;
-        let gravityConst = 0.005;
+        // --- 6. 动画与数值更新 ---
+        
+        const speedInput = document.getElementById('speedRange');
+        const gravityInput = document.getElementById('gravityRange');
+        const speedDisplay = document.getElementById('speedVal');
+        const gravityDisplay = document.getElementById('gravityVal');
 
-        document.getElementById('speedRange').addEventListener('input', (e) => rotSpeed = e.target.value / 2000);
-        document.getElementById('gravityRange').addEventListener('input', (e) => gravityConst = e.target.value / 4000);
+        // 初始化数值
+        let rotSpeed = speedInput.value / 2000;
+        let gravityConst = gravityInput.value / 4000;
+
+        // 监听滑块事件
+        speedInput.addEventListener('input', (e) => {
+            speedDisplay.textContent = e.target.value;
+            rotSpeed = e.target.value / 2000;
+        });
+
+        gravityInput.addEventListener('input', (e) => {
+            gravityDisplay.textContent = e.target.value;
+            gravityConst = e.target.value / 4000;
+        });
 
         function animate() {
             requestAnimationFrame(animate);
